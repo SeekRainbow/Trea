@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jamp智能聊天室</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="chat-container">
+        <!-- 顶部导航栏 -->
+        <div class="chat-header">
+            <div class="header-left">
+                <h2 class="logo-small">Jamp <span>智能聊天室</span></h2>
+            </div>
+            <div class="header-right">
+                <span class="current-user">当前用户: <span id="current-username">{{ username }}</span></span>
+                <button id="logout-btn" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> 退出
+                </button>
+            </div>
+        </div>
+        
+        <div class="chat-content">
+            <!-- 左侧消息区域 -->
+            <div class="chat-messages">
+                <div id="messages-container" class="messages-container">
+                    <div class="system-message">
+                        <p>欢迎来到Jamp智能聊天室！</p>
+                        <p>使用指南：</p>
+                        <ul>
+                            <li>发送文本消息和Emoji表情</li>
+                            <li>使用@用户名进行提醒</li>
+                            <li>使用@电影 url分享电影链接</li>
+                            <li>使用@川小农 提问与AI对话</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- 消息输入区域 -->
+                <div class="message-input-area">
+                    <div class="input-toolbar">
+                        <button id="emoji-btn" class="toolbar-btn" title="Emoji表情">
+                            <i class="far fa-smile"></i>
+                        </button>
+                        <button id="help-btn" class="toolbar-btn" title="使用帮助">
+                            <i class="far fa-question-circle"></i>
+                        </button>
+                    </div>
+                    <form id="message-form" class="message-form">
+                        <input 
+                            type="text" 
+                            id="message-input" 
+                            placeholder="输入消息... 支持@功能: @用户名, @电影 url, @川小农 问题"
+                            autocomplete="off"
+                        >
+                        <button type="submit" class="send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 右侧用户列表 -->
+            <div class="chat-sidebar">
+                <div class="sidebar-header">
+                    <h3><i class="fas fa-users"></i> 在线用户</h3>
+                    <span id="online-count" class="online-count">0</span>
+                </div>
+                <div id="users-list" class="users-list">
+                    <!-- 在线用户列表将通过JavaScript动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Emoji选择器（隐藏状态） -->
+    <div id="emoji-picker" class="emoji-picker hidden">
+        <div class="emoji-grid">
+            <!-- 常用Emoji，每个表情单独包装在span标签中 -->
+            <span>😀</span><span>😃</span><span>😄</span><span>😁</span><span>😆</span><span>😅</span><span>😂</span><span>🤣</span>
+            <span>😊</span><span>😇</span><span>🙂</span><span>🙃</span><span>😉</span><span>😌</span><span>😍</span><span>🥰</span>
+            <span>😘</span><span>😗</span><span>😙</span><span>😚</span><span>😋</span><span>😛</span><span>😝</span><span>😜</span>
+            <span>🤪</span><span>🤨</span><span>🧐</span><span>🤓</span><span>😎</span><span>🤩</span><span>🥳</span><span>😏</span>
+            <span>😒</span><span>😞</span><span>😔</span><span>😟</span><span>😕</span><span>🙁</span><span>☹️</span><span>😣</span>
+            <span>😖</span><span>😫</span><span>😩</span><span>🥺</span><span>😢</span><span>😭</span><span>😤</span><span>😠</span>
+            <span>😡</span><span>🤬</span><span>🤯</span><span>😳</span><span>🥵</span><span>🥶</span><span>😱</span><span>😨</span>
+            <span>😰</span><span>😥</span><span>😓</span><span>🤗</span><span>🤔</span><span>🤭</span><span>🤫</span><span>🤥</span>
+            <span>😶</span><span>😐</span><span>😑</span><span>😬</span><span>🙄</span><span>😯</span><span>😦</span><span>😧</span>
+            <span>😮</span><span>😲</span><span>🥱</span><span>😴</span><span>🤤</span><span>😪</span><span>😵</span><span>🤐</span>
+            <span>🥴</span><span>🤢</span><span>🤮</span><span>🤧</span><span>😷</span><span>🤒</span><span>🤕</span><span>🤑</span>
+            <span>🤠</span><span>😈</span><span>👿</span><span>👹</span><span>👺</span><span>🤡</span><span>💩</span><span>👻</span>
+            <span>💀</span><span>☠️</span><span>👽</span><span>👾</span><span>🤖</span><span>🎃</span><span>😺</span><span>😸</span>
+            <span>😹</span><span>😻</span><span>😼</span><span>😽</span><span>🙀</span><span>😿</span><span>😾</span>
+        </div>
+    </div>
+    
+    <!-- 帮助弹窗 -->
+    <div id="help-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>使用帮助</h3>
+                <button id="close-help" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h4>基础功能：</h4>
+                <ul>
+                    <li>在输入框中输入文本消息并按Enter发送</li>
+                    <li>点击😊按钮选择并发送Emoji表情</li>
+                    <li>右侧显示当前在线用户列表</li>
+                </ul>
+                <h4>特殊功能：</h4>
+                <ul>
+                    <li><strong>@用户名</strong> - 提醒特定用户，如：@小明 你好</li>
+                    <li><strong>@电影 url</strong> - 分享电影链接，支持解析地址并播放，如：@电影 https://example.com/video.mp4</li>
+                    <li><strong>@川小农 问题</strong> - 与AI助手川小农对话，如：@川小农 你好</li>
+                </ul>
+                <h4>川小农机器人功能：</h4>
+                <ul>
+                    <li>始终在线，随时为您服务</li>
+                    <li>在您加入聊天室时自动欢迎</li>
+                    <li>响应@消息，提供智能回复</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const username = '{{ username }}';
+            const socket = io();
+            
+            // DOM元素
+            const messagesContainer = document.getElementById('messages-container');
+            const messageForm = document.getElementById('message-form');
+            const messageInput = document.getElementById('message-input');
+            const usersList = document.getElementById('users-list');
+            const onlineCount = document.getElementById('online-count');
+            const logoutBtn = document.getElementById('logout-btn');
+            const emojiBtn = document.getElementById('emoji-btn');
+            const emojiPicker = document.getElementById('emoji-picker');
+            const helpBtn = document.getElementById('help-btn');
+            const helpModal = document.getElementById('help-modal');
+            const closeHelp = document.getElementById('close-help');
+            
+            // 连接Socket.IO并加入聊天室
+            socket.on('connect', function() {
+                console.log('已连接到服务器');
+                socket.emit('join', { username: username });
+            });
+            
+            // 接收欢迎消息
+            socket.on('welcome_message', function(data) {
+                addSystemMessage(data.message);
+                updateOnlineUsers(data.online_users);
+            });
+            
+            // 接收新消息
+            socket.on('new_message', function(data) {
+                addMessage(data);
+            });
+            
+            // 接收用户加入消息
+            socket.on('user_joined', function(data) {
+                addSystemMessage(`${data.username} 加入了聊天室`);
+                updateOnlineUsers(data.online_users);
+            });
+            
+            // 接收用户离开消息
+            socket.on('user_left', function(data) {
+                addSystemMessage(`${data.username} 离开了聊天室`);
+                updateOnlineUsers(data.online_users);
+            });
+            
+            // 表单提交处理
+            messageForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const message = messageInput.value.trim();
+                if (message) {
+                    socket.emit('send_message', { message: message });
+                    messageInput.value = '';
+                }
+            });
+            
+            // 退出按钮处理
+            logoutBtn.addEventListener('click', function() {
+                socket.emit('leave');
+                window.location.href = '/';
+            });
+            
+            // Emoji选择器
+            emojiBtn.addEventListener('click', function() {
+                emojiPicker.classList.toggle('hidden');
+            });
+            
+            // 点击页面其他区域关闭Emoji选择器
+            document.addEventListener('click', function(e) {
+                if (!emojiBtn.contains(e.target) && !emojiPicker.contains(e.target)) {
+                    emojiPicker.classList.add('hidden');
+                }
+            });
+            
+            // 选择Emoji
+            const emojiGrid = emojiPicker.querySelector('.emoji-grid');
+            emojiGrid.addEventListener('click', function(e) {
+                if (e.target.textContent) {
+                    messageInput.value += e.target.textContent;
+                    messageInput.focus();
+                }
+            });
+            
+            // 帮助弹窗
+            helpBtn.addEventListener('click', function() {
+                helpModal.classList.remove('hidden');
+            });
+            
+            closeHelp.addEventListener('click', function() {
+                helpModal.classList.add('hidden');
+            });
+            
+            // 点击弹窗外部关闭
+            window.addEventListener('click', function(e) {
+                if (e.target === helpModal) {
+                    helpModal.classList.add('hidden');
+                }
+            });
+            
+            // 添加消息到聊天区域
+            function addMessage(data) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message');
+                
+                // 根据消息类型添加不同样式
+                if (data.is_system) {
+                    messageElement.classList.add('system-message');
+                } else if (data.is_ai) {
+                    messageElement.classList.add('ai-message');
+                } else if (data.username === username) {
+                    messageElement.classList.add('my-message');
+                } else {
+                    messageElement.classList.add('other-message');
+                }
+                
+                // 构建消息内容
+                let messageHTML = '';
+                if (!data.is_system) {
+                    const isBot = data.username === '川小农';
+                    messageHTML += `<div class="message-header">
+                        <span class="message-username ${isBot ? 'bot-username' : ''}">${data.username}${isBot ? ' 🤖' : ''}</span>
+                        <span class="message-time">${data.timestamp}</span>
+                    </div>`;
+                }
+                
+                // 处理电影链接
+                if (data.is_movie && data.movie_url) {
+                    messageHTML += `<div class="message-content movie-message">
+                        <p>🎬 电影链接：<a href="${data.movie_url}" target="_blank">${data.movie_url}</a></p>
+                        <!-- 电影播放器 -->
+                        <div class="video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;">
+                            <iframe 
+                                src="${data.movie_url}" 
+                                frameborder="0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                allowfullscreen 
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: #000; z-index: 1;">
+                            </iframe>
+                        </div>
+                        <div style="margin-top: 8px; font-size: 12px; color: #999;">如果视频无法播放，请点击上方链接在新窗口打开</div>
+                    </div>`;
+                } else {
+                    // 处理@提醒，添加高亮
+                    let content = data.message;
+                    if (content.includes('@')) {
+                        content = content.replace(/@(\w+)/g, function(match, username) {
+                            return `<span class="mention">${match}</span>`;
+                        });
+                    }
+                    messageHTML += `<div class="message-content">${content}</div>`;
+                }
+                
+                messageElement.innerHTML = messageHTML;
+                messagesContainer.appendChild(messageElement);
+                
+                // 滚动到底部
+                scrollToBottom();
+            }
+            
+            // 添加系统消息
+            function addSystemMessage(message) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', 'system-message');
+                messageElement.innerHTML = `<div class="message-content">${message}</div>`;
+                messagesContainer.appendChild(messageElement);
+                scrollToBottom();
+            }
+            
+            // 更新在线用户列表
+            function updateOnlineUsers(users) {
+                usersList.innerHTML = '';
+                onlineCount.textContent = users.length;
+                
+                users.forEach(function(user) {
+                    const userElement = document.createElement('div');
+                    userElement.classList.add('user-item');
+                    const isBot = user === '川小农';
+                    
+                    if (user === username) {
+                        userElement.classList.add('current-user-item');
+                        userElement.innerHTML = `
+                            <span class="user-status online"></span>
+                            <span class="user-name">${user} (你)</span>
+                        `;
+                    } else {
+                        userElement.innerHTML = `
+                            <span class="user-status online ${isBot ? 'bot-status' : ''}"></span>
+                            <span class="user-name ${isBot ? 'bot-name' : ''}">${user}${isBot ? ' 🤖' : ''}</span>
+                        `;
+                    }
+                    
+                    // 添加点击用户名插入@功能
+                    userElement.addEventListener('click', function() {
+                        messageInput.value += ' @' + user;
+                        messageInput.focus();
+                    });
+                    
+                    usersList.appendChild(userElement);
+                });
+            }
+            
+            // 滚动到底部
+            function scrollToBottom() {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+            
+            // 监听按键事件，支持Enter发送消息，Shift+Enter换行
+            messageInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    messageForm.dispatchEvent(new Event('submit'));
+                }
+            });
+            
+            // 监听窗口关闭事件，发送离开消息
+            window.addEventListener('beforeunload', function() {
+                socket.emit('leave');
+            });
+        });
+    </script>
+</body>
+</html>
