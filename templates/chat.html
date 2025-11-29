@@ -132,6 +132,17 @@
             const username = '{{ username }}';
             const socket = io();
             
+            // 显示错误消息并返回登录页面
+            function showJoinError(message) {
+                alert(message);
+                window.location.href = '/';
+            }
+            
+            // 处理加入聊天室失败的事件
+            socket.on('join_error', function(data) {
+                showJoinError(data.message);
+            });
+            
             // DOM元素
             const messagesContainer = document.getElementById('messages-container');
             const messageForm = document.getElementById('message-form');
@@ -297,37 +308,48 @@
             }
             
             // 更新在线用户列表
-            function updateOnlineUsers(users) {
-                usersList.innerHTML = '';
-                onlineCount.textContent = users.length;
-                
-                users.forEach(function(user) {
-                    const userElement = document.createElement('div');
-                    userElement.classList.add('user-item');
-                    const isBot = user === '川小农';
-                    
-                    if (user === username) {
-                        userElement.classList.add('current-user-item');
-                        userElement.innerHTML = `
-                            <span class="user-status online"></span>
-                            <span class="user-name">${user} (你)</span>
-                        `;
-                    } else {
-                        userElement.innerHTML = `
-                            <span class="user-status online ${isBot ? 'bot-status' : ''}"></span>
-                            <span class="user-name ${isBot ? 'bot-name' : ''}">${user}${isBot ? ' 🤖' : ''}</span>
-                        `;
+                    function updateOnlineUsers(users) {
+                        usersList.innerHTML = '';
+                        onlineCount.textContent = users.length;
+                        
+                        users.forEach(function(user) {
+                            const userElement = document.createElement('div');
+                            userElement.classList.add('user-item');
+                            const isBot = user === '川小农';
+                            const isMovieUser = user === '电影';
+                            
+                            // 构建状态标签
+                            const statusElement = document.createElement('span');
+                            statusElement.classList.add('user-status', 'online');
+                            if (isBot) statusElement.classList.add('bot-status');
+                            if (isMovieUser) statusElement.classList.add('movie-status');
+                            
+                            // 构建用户名标签
+                            const nameElement = document.createElement('span');
+                            nameElement.classList.add('user-name');
+                            if (isBot) nameElement.classList.add('bot-name');
+                            if (isMovieUser) nameElement.classList.add('movie-name');
+                            
+                            if (user === username) {
+                                userElement.classList.add('current-user-item');
+                                nameElement.textContent = user + ' (你)';
+                            } else {
+                                nameElement.textContent = user + (isBot ? ' 🤖' : isMovieUser ? ' 🎬' : '');
+                            }
+                            
+                            // 组装DOM元素
+                            userElement.appendChild(statusElement);
+                            userElement.appendChild(nameElement);
+                            
+                            // 添加点击用户名插入@功能
+                            userElement.addEventListener('click', function() {
+                                messageInput.value += ' @' + user;
+                                messageInput.focus();
+                            });
+                            
+                            usersList.appendChild(userElement);
+                        });
                     }
-                    
-                    // 添加点击用户名插入@功能
-                    userElement.addEventListener('click', function() {
-                        messageInput.value += ' @' + user;
-                        messageInput.focus();
-                    });
-                    
-                    usersList.appendChild(userElement);
-                });
-            }
             
             // 滚动到底部
             function scrollToBottom() {

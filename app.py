@@ -3,6 +3,8 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 import config
 import re
 import time
+# 导入自定义的AI模块
+from simple_ai import bot_ai
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config.SECRET_KEY
@@ -81,6 +83,26 @@ def handle_join(data):
     """处理用户加入聊天室"""
     username = data.get('username')
     if not username:
+        # 发送错误消息给客户端
+        emit('join_error', {
+            'message': '用户名不能为空'
+        }, to=request.sid)
+        return
+    
+    # 再次验证用户名是否可用（防止多个用户同时通过验证）
+    if username == BOT_USERNAME or username == MOVIE_USERNAME:
+        # 发送错误消息给客户端
+        emit('join_error', {
+            'message': '该用户名是系统保留用户，不可使用'
+        }, to=request.sid)
+        return
+    
+    # 检查用户名是否已经被其他用户使用
+    if username in users.values():
+        # 发送错误消息给客户端
+        emit('join_error', {
+            'message': '用户名已被使用，请更换用户名'
+        }, to=request.sid)
         return
     
     # 保存用户信息
@@ -123,6 +145,8 @@ def handle_message(data):
     if not message or len(message) > config.MAX_MESSAGE_LENGTH:
         return
     
+    print(f"接收到消息: 用户={username}, 消息内容='{message}'")
+    
     # 处理@用户功能
     mentioned_users = []
     if '@' in message:
@@ -131,8 +155,11 @@ def handle_message(data):
         mentions = re.findall(r'@(\S+)', message)
         mentioned_users = [mention for mention in mentions if mention in get_online_users()]
         
+        print(f"检测到@用户: {mentions}, 有效用户: {mentioned_users}")
+        
         # 检查是否@了机器人
         if BOT_USERNAME in mentions:
+            print("检测到@川小农，准备触发AI响应")
             # 延迟回复@消息
             socketio.sleep(1)
             bot_responses = [
@@ -154,6 +181,7 @@ def handle_message(data):
     
     # 检查是否是特殊命令（以@开头的命令）
     if message.startswith('@'):
+        print("消息以@开头，调用handle_special_command处理")
         handle_special_command(username, message, get_current_timestamp(), room)
     else:
         # 构建消息数据
@@ -185,28 +213,39 @@ def handle_leave():
 # 特殊命令处理
 def handle_special_command(username, message, timestamp, room):
     """处理@xxx特殊命令"""
+    print(f"开始处理特殊命令: 消息='{message}'")
+    
     # 解析命令格式: @命令名 参数
     match = re.match(r'@(.+?)(\s+.*)?$', message)
     if not match:
+        print(f"无法匹配命令格式: {message}")
+        # 尝试直接检查是否包含@川小农
+        if '@川小农' in message:
+            print("直接检测到@川小农，触发AI命令")
+            # 提取@川小农后面的内容作为问题
+            question = message.split('@川小农', 1)[1].strip()
+            handle_ai_command(username, question, timestamp)
         return
     
     command = match.group(1).strip()
     params = match.group(2) if match.group(2) else ''
     params = params.strip()
-    # 添加调试日志
-    print(f"处理特殊命令: {command}, 参数: {params}")
+    
+    print(f"解析命令: 命令名={command}, 参数={params}")
+    
     # 移除参数中可能包含的反引号
     params = params.replace('`', '')
-    print(f"清理后的参数: {params}")
     
     # 根据不同命令进行处理
     if command == '电影':
         handle_movie_command(username, params, timestamp, room)
     elif command == '川小农':
+        print("命令匹配@川小农，调用handle_ai_command")
         handle_ai_command(username, params, timestamp)
     else:
         # 检查是否是@用户提醒
         if command in users.values():
+            print(f"@用户提醒: {command}")
             # 发送@提醒消息
             emit('new_message', {
                 'username': username,
@@ -216,12 +255,22 @@ def handle_special_command(username, message, timestamp, room):
                 'mention_target': command
             }, room=room)
         else:
-            # 未知命令，当作普通消息处理
-            emit('new_message', {
-                'username': username,
-                'message': message,
-                'timestamp': timestamp
-            }, room=room)
+            # 检查是否包含@川小农
+            if '@川小农' in message:
+                print("消息中包含@川小农，触发AI命令")
+                # 提取@川小农后面的内容作为问题
+                question_part = message.split('@川小农', 1)[1]
+                # 移除可能的开头空格
+                question = question_part.lstrip()
+                handle_ai_command(username, question, timestamp)
+            else:
+                print(f"未知命令: {command}")
+                # 未知命令，当作普通消息处理
+                emit('new_message', {
+                    'username': username,
+                    'message': message,
+                    'timestamp': timestamp
+                }, room=room)
 
 def handle_movie_command(username, url, timestamp, room):
     """处理@电影命令，支持解析电影地址并播放"""
@@ -269,20 +318,16 @@ def handle_movie_command(username, url, timestamp, room):
     }, room=room)
 
 def handle_ai_command(username, question, timestamp):
-    """处理@川小农命令"""
+    """处理@川小农命令，使用智能AI回复"""
+    print(f"处理AI命令: 用户={username}, 问题='{question}'")
+    
     if not question:
         response = "请输入您想咨询的问题，格式: @川小农 问题"
     else:
-        # 模拟AI回复 - 实际项目中可以接入真实的AI模型
-        # 简单的示例回复
-        sample_responses = [
-            "您好！我是川小农，很高兴为您服务。",
-            "这个问题很有趣，让我思考一下...",
-            "感谢您的提问，我会尽力为您解答。",
-            "根据我的了解，您可以尝试..."
-        ]
-        import random
-        response = f"[{username} 的AI助手回复] {random.choice(sample_responses)}"
+        # 使用智能AI模块生成回复
+        response = bot_ai.get_response(question, username)
+    
+    print(f"AI回复: '{response}'")
     
     emit('new_message', {
         'username': '川小农',

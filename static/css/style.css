@@ -514,6 +514,26 @@ body {
     color: #2196F3;
 }
 
+/* 电影用户状态样式 */
+.user-status.movie-status {
+    background-color: #FF5722;
+    animation: glow 2s infinite alternate;
+}
+
+@keyframes glow {
+    from {
+        box-shadow: 0 0 2px 2px rgba(255, 87, 34, 0.5);
+    }
+    to {
+        box-shadow: 0 0 5px 5px rgba(255, 87, 34, 0.3);
+    }
+}
+
+.movie-name {
+    font-weight: bold;
+    color: #FF5722;
+}
+
 .user-name {
     font-size: 14px;
     color: #333;
