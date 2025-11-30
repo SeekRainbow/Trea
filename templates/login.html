@@ -75,8 +75,8 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.valid) {
-                        // 跳转到聊天室页面
-                        window.location.href = `/chat?username=${encodeURIComponent(username)}`;
+                        // 跳转到聊天室页面，带上服务器地址参数
+                        window.location.href = `/chat?username=${encodeURIComponent(username)}&server=${encodeURIComponent(server)}`;
                     } else {
                         showError(data.message);
                     }

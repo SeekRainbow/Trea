@@ -34,9 +34,10 @@ def index():
 def chat():
     """聊天室页面"""
     username = request.args.get('username')
+    server = request.args.get('server')
     if not username:
         return jsonify({"error": "用户名不能为空"}), 400
-    return render_template('chat.html', username=username)
+    return render_template('chat.html', username=username, server=server)
 
 @app.route('/api/validate_username', methods=['POST'])
 def validate_username():
