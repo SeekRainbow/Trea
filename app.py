@@ -373,4 +373,5 @@ if __name__ == '__main__':
     # 初始化机器人用户
     initialize_bot()
     
+    # 启动Flask应用，使用端口5000
     socketio.run(app, host='0.0.0.0', port=5000, debug=config.DEBUG)
